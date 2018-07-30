@@ -8,10 +8,10 @@ parser = argparse.ArgumentParser(prog='graph')
 subparsers = parser.add_subparsers()
 
 # set github user for downloading
-parser_github = subparsers.add_parser('github')
+parser_github = subparsers.add_parser('update')
 parser_github.add_argument('user', type=str, action='store')
 parser_github.add_argument('password', type=str, action='store')
-parser_github.set_defaults(func=set_github_user)
+parser_github.set_defaults(func=update)
 
 # download
 parser_download = subparsers.add_parser('download')
@@ -85,11 +85,11 @@ parser_example.add_argument('lang2', type=str, action='store')
 parser_example.add_argument('--n', type=int, action='store', nargs='?', default=10)
 parser_example.add_argument('--cutoff', type=int, action='store', nargs='?', default=4)
 parser_example.add_argument('--topn', type=int, action='store', nargs='?', default=None)
-parser_example.add_argument('--words', type=str, action='store', nargs='+', default=[])
+parser_example.add_argument('--input', type=str, action='store', nargs='?', default='')
 parser_example.add_argument('--lang', type=str, action='store', nargs='?', default='')
 parser_example.add_argument('--config', action='store_true', default=False)
 parser_example.add_argument('--load', action='store_true', default=False)
-parser_example.add_argument('--file', action='store_true', default=False)
+parser_example.add_argument('--output', action='store', type=str, default='')
 parser_example.set_defaults(func=example)
 
 args = parser.parse_args()

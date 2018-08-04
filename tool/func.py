@@ -15,6 +15,16 @@ from .data import lang_codes, rename, remove
 from tqdm import tqdm
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+def bisect(a, x, key=lambda x: x):
+    lo = 0
+    hi = len(a)
+    x_key = key(x) 
+    while lo < hi:
+        mid = (lo+hi)//2
+        if x_key < key(a[mid]): hi = mid
+        else: lo = mid+1
+    return lo
+
 # CLASSES
 
 class Word:
@@ -201,10 +211,11 @@ class DiGetItem:
         else:
             if key2 in self.dict: return self.dict[key2]
             try:
-                key = self.list[self.list.index(key)]
-                return key
-            except:
-                pass
+                i = bisect(self.list, key, key=str)
+                if self.list[i]==key: return self.list[i]
+                elif self.list[i+1]==key: return self.list[i+1]
+                elif self.list[i-1]==key: return self.list[i-1]
+            except: pass
     def __len__(self):
         return len(self.list)+len(self.dict)
 
@@ -236,7 +247,7 @@ def l(lang):
     else: return lang
 
 def update(user, password):
-    github = Github('dkbrz', 'mandarinka24', verify=False)
+    github = Github(user, password, verify=False)
     user = github.get_user('apertium')
     repos = list(user.get_repos())
     with open('download.txt', 'w', encoding='utf-8') as f:
@@ -497,8 +508,8 @@ def monodix():
     logging.info('Started monolingual dictionaries')
     if not os.path.exists('./monodix/'):
         os.makedirs('./monodix/')
-    #for lang in tqdm(langs):
-    for lang in langs:
+    for lang in tqdm(langs):
+    #for lang in langs:
         dictionary = one_language_dict(lang)
         with open ('./monodix/'+lang+'.dix', 'w', encoding = 'utf-16') as f:
             for i in dictionary_to_nodes(dictionary):
@@ -620,6 +631,34 @@ def bidix():
     print ()
     logging.info('Finished bilingual dictionaries')
 
+def recommend(lang1, lang2):
+    """
+    """
+    
+    G = nx.Graph()
+    with open ('./filelist.txt','r', encoding='utf-8') as f:
+        for line in tqdm(f.readlines()):
+            line = line.strip('\n')
+            pair = [l(i) for i in line.split('.')[-2].split('-')] 
+            with open(line, 'r', encoding='utf-8') as f:
+                n = len(f.readlines())
+            coef = 1/log10(n)
+            if coef < 1:
+                #print (pair, coef)
+                G.add_edge(pair[0], pair[1], weight=coef, name=line)
+    result = {}
+    for path in islice(nx.shortest_simple_paths(G, source=lang1, target=lang2, weight='weight'), 0, 300):
+        length = sum([G[path[i]][path[i-1]]['weight'] for i in range(1, len(path))])
+        for i in range(1, len(path)):
+            if G[path[i]][path[i-1]]['name'] not in result:
+                result[G[path[i]][path[i-1]]['name']]  = length
+    #for i in result:
+    #    print (i, result[i])
+    config = '{}-{}-recommend'.format(lang1, lang2)
+    with open (config,'w', encoding='utf-8') as f:
+        for i in sorted(result, key=result.get):
+            f.write(i+'\n')
+
 def preprocessing():
     """
     Combination of previous functions: all_languages, monodix and bidix
@@ -646,6 +685,7 @@ def import_mono(lang):
             string = line.strip('\n').split('\t')
             s = [Tags([j for j in i.split('-') if j !='']) for i in string[1].strip().split('$')]
             dictionary.add(Word(string[0], lang, s))
+    dictionary.list.sort(key=str)
     return dictionary
 
 # BUILDING

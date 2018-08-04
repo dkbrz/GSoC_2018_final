@@ -23,6 +23,12 @@ parser_list.add_argument('--path', type=str, action='store', nargs='?', default=
 parser_list.add_argument('--dialects', type=bool, action='store', nargs='?', default=False)
 parser_list.set_defaults(func=list_files)
 
+#recommend
+parser_recommend = subparsers.add_parser('recommend')
+parser_recommend.add_argument('lang1', type=str, action='store')
+parser_recommend.add_argument('lang2', type=str, action='store')
+parser_recommend.set_defaults(func=recommend)
+
 #preprocessing (mono + bi dictionaries)
 parser_preproc = subparsers.add_parser('preprocessing')
 parser_preproc.set_defaults(func=preprocessing)

@@ -631,26 +631,21 @@ def bidix():
     print ()
     logging.info('Finished bilingual dictionaries')
 
-def recommend(lang1, lang2, mode='list'):
+def recommend(lang1, lang2):
     """
     """
     
     G = nx.Graph()
-    if mode=='list':
-        with open ('./filelist.txt','r', encoding='utf-8') as f:
-            lines = f.readlines()
-    elif mode=='download':
-        with open ('./download.txt','r', encoding='utf-8') as f:
-            lines = f.readlines()
-    for line in tqdm(lines):
-        line = line.strip('\n')
-        pair = [l(i) for i in line.split('.')[-2].split('-')] 
-        with open(line, 'r', encoding='utf-8') as f:
-            n = len(f.readlines())
-        coef = 1/log10(n)
-        if coef < 1:
-            #print (pair, coef)
-            G.add_edge(pair[0], pair[1], weight=coef, name=line)
+    with open ('./filelist.txt','r', encoding='utf-8') as f:
+        for line in tqdm(f.readlines()):
+            line = line.strip('\n')
+            pair = [l(i) for i in line.split('.')[-2].split('-')] 
+            with open(line, 'r', encoding='utf-8') as f:
+                n = len(f.readlines())
+            coef = 1/log10(n)
+            if coef < 1:
+                #print (pair, coef)
+                G.add_edge(pair[0], pair[1], weight=coef, name=line)
     result = {}
     for path in islice(nx.shortest_simple_paths(G, source=lang1, target=lang2, weight='weight'), 0, 300):
         length = sum([G[path[i]][path[i-1]]['weight'] for i in range(1, len(path))])

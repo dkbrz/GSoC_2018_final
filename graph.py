@@ -98,6 +98,15 @@ parser_example.add_argument('--load', action='store_true', default=False)
 parser_example.add_argument('--output', action='store', type=str, default='')
 parser_example.set_defaults(func=example)
 
+#grid
+parser_grid = subparsers.add_parser('grid')
+parser_grid.add_argument('lang1', type=str, action='store')
+parser_grid.add_argument('lang2', type=str, action='store')
+parser_grid.add_argument('--n', type=int, action='store', nargs='*', default=[10])
+parser_grid.add_argument('--topn', type=int, action='store', nargs='*', default=[None])
+parser_grid.add_argument('--cutoff', type=int, action='store', nargs='*', default=[4])
+parser_grid.set_defaults(func=grid)
+
 args = parser.parse_args()
 arg_spec = inspect.getargspec(args.func)
 if arg_spec.keywords:

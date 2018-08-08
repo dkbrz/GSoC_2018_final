@@ -1321,3 +1321,61 @@ def example (lang1, lang2, n=10, cutoff=4, topn=None, input='', lang = '', confi
             print('Lemma: '+word, file=file)
             print_lemma_results(lemma_search (G, word, l2, lang1, cutoff=cutoff, topn=topn), file=file)
             print('---------------------------------------------', file=file)
+
+def _sub_addition(lang1, lang2, l1, G, cutoff):
+    k1 = [0,0,0,0]  #existant, failed, new, errors
+    for node in l1:
+        if node in G:
+            s = FilteredList(list(G.neighbors(node))).lang(lang2)
+            if not len(s):
+                candidates = possible_translations(G, node, lang2, cutoff=cutoff)
+                if candidates: k1[2] += 1
+                else: k1[1] += 1
+            else: k1[0] += 1
+        else: k1[3] +=1
+    if k1[0] > 0: c = k1[2]/k1[0]*100
+    else: c = 0
+    print ('{}->{}    Exist: {}, failed: {}, NEW: {} +{}%, NA: {}'.format(lang1, lang2, k1[0], k1[1], k1[2], round(c, 0), k1[3]))
+
+def _one_iter_grid(lang1, lang2, n, cutoff, topns):
+    print('n: {}\tcutoff: {}'.format(n, cutoff))
+    get_relevant_languages(lang1, lang2)
+    load_file(lang1, lang2, n=n)
+    G = built_from_file('{}-{}'.format(lang1,lang2))
+    l1, l2 = dictionaries(lang1, lang2)
+    _sub_addition(lang1, lang2, l1, G, cutoff=cutoff)
+    _sub_addition(lang2, lang1, l2, G, cutoff=cutoff)
+    for topn in topns:
+        candidates = random.sample(l1, len(l1))
+        pairs = []
+        for i in candidates:
+            if len(pairs) < 1000 and i in G.nodes():
+                ne = list(G.neighbors(i))
+                s = FilteredList(ne).lang(lang2)
+                if len(s) == 1 and len(ne) > 1:
+                    ne = list(G.neighbors(s[0]))
+                    if len(FilteredList(ne).lang(lang1)) == 1 and len(ne)>1 and FilteredList(ne).lang(lang1)[0]==i:
+                        pairs.append((i, s[0]))
+            elif len(pairs) >= 1000: break
+        if len(pairs) == 0: print ('no one-variant')
+        pairs2 = pairs[:1000]
+        result = []
+        for i in pairs: 
+            result.append(two_node_search (G, i[0], i[1], lang1, lang2, cutoff=cutoff, topn=topn))
+        print ('topn: {}\t N items: {}\t'.format(topn, len(pairs2)), end='\t')
+        try:
+            precision = sum(1 for i in result if i == 1) / sum(1 for i in result if i > 0)
+            recall = sum(1 for i in result if i == 1) / sum(1 for i in result)
+            f1 = 2 * precision * recall / (precision + recall)
+            print ('Precision : {}, recall : {}, f1-score : {}'.format(precision, recall, f1))
+        except:
+            print ('error')
+    del G, pairs
+    
+def grid(lang1, lang2, n, cutoff, topn):
+    if None not in topn: topn.append(None)
+    for i in n:
+        for j in cutoff:
+            _one_iter_grid(lang1, lang2, n=i, cutoff=j, topns=topn)
+            print('===============================================================')
+    

@@ -9,8 +9,8 @@ subparsers = parser.add_subparsers()
 
 # set github user for downloading
 parser_github = subparsers.add_parser('update')
-parser_github.add_argument('user', type=str, action='store')
-parser_github.add_argument('password', type=str, action='store')
+#parser_github.add_argument('user', type=str, action='store')
+#parser_github.add_argument('password', type=str, action='store')
 parser_github.set_defaults(func=update)
 
 # download

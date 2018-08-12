@@ -14,6 +14,7 @@ import random
 from .data import lang_codes, rename, remove
 from tqdm import tqdm
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+import getpass
 
 def bisect(a, x, key=lambda x: x):
     lo = 0
@@ -246,7 +247,9 @@ def l(lang):
     if lang in lang_codes: return lang_codes[lang]
     else: return lang
 
-def update(user, password):
+def update():
+    user = input('Username:\t')
+    password = getpass.getpass(prompt='Password:\t')
     github = Github(user, password, verify=False)
     user = github.get_user('apertium')
     repos = list(user.get_repos())
@@ -654,7 +657,7 @@ def recommend(lang1, lang2):
                 result[G[path[i]][path[i-1]]['name']]  = length
     #for i in result:
     #    print (i, result[i])
-    config = '{}-{}-recommend'.format(lang1, lang2)
+    config = '{}-{}-recommend.txt'.format(lang1, lang2)
     with open (config,'w', encoding='utf-8') as f:
         for i in sorted(result, key=result.get):
             f.write(i+'\n')

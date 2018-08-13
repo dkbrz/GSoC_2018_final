@@ -21,6 +21,7 @@ parser_download.set_defaults(func=download)
 parser_list = subparsers.add_parser('list')
 parser_list.add_argument('--path', type=str, action='store', nargs='?', default='./dictionaries/')
 parser_list.add_argument('--dialects', type=bool, action='store', nargs='?', default=False)
+parser_list.add_argument('--output', type=str, action='store', nargs='?', default='filelist.txt')
 parser_list.set_defaults(func=list_files)
 
 #recommend
@@ -31,6 +32,7 @@ parser_recommend.set_defaults(func=recommend)
 
 #preprocessing (mono + bi dictionaries)
 parser_preproc = subparsers.add_parser('preprocessing')
+parser_preproc.add_argument('--input', type=str, action='store', nargs='?', default='filelist.txt')
 parser_preproc.set_defaults(func=preprocessing)
 
 # configuration file for a language pair
@@ -62,6 +64,7 @@ parser_eval.add_argument('--n', type=int, action='store', nargs='?', default=10)
 parser_eval.add_argument('--topn', type=int, action='store', nargs='?', default=None)
 parser_eval.add_argument('--n_iter', type=int, action='store', nargs='?', default=3)
 parser_eval.add_argument('--cutoff', type=int, action='store', nargs='?', default=4)
+parser_eval.add_argument('--ncheck', type=int, action='store', nargs='?', default=1000)
 parser_eval.set_defaults(func=eval_loop)
 
 # preview result
@@ -105,6 +108,7 @@ parser_grid.add_argument('lang2', type=str, action='store')
 parser_grid.add_argument('--n', type=int, action='store', nargs='*', default=[10])
 parser_grid.add_argument('--topn', type=int, action='store', nargs='*', default=[None])
 parser_grid.add_argument('--cutoff', type=int, action='store', nargs='*', default=[4])
+parser_grid.add_argument('--ncheck', type=int, action='store', nargs='?', default=1000)
 parser_grid.set_defaults(func=grid)
 
 args = parser.parse_args()

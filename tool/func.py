@@ -248,6 +248,10 @@ def l(lang):
     else: return lang
 
 def update():
+    """
+    Function asks for Github username and password to be able to
+    work with Github API to update downloading list.
+    """
     user = input('Username:\t')
     password = getpass.getpass(prompt='Password:\t')
     github = Github(user, password, verify=False)
@@ -266,6 +270,7 @@ def update():
 #                print (repo)
 
 def download():
+    error_list = []
     if not os.path.exists('./dictionaries/'): os.makedirs('./dictionaries/')
     with open('download.txt', 'r', encoding='utf-8') as f:
         for line in tqdm(f.readlines()):
@@ -274,11 +279,18 @@ def download():
                 filename = './dictionaries/'+bidix.split('/')[-1]
                 response = requests.get(bidix)
                 response.encoding = 'UTF-8'
-                with open(filename, 'w', encoding='UTF-8') as f: f.write(response.text)
+                text = response.text
+                if '502: Failure' in text or 'Error 503' in text: error_list.append(bidix)
+                else:
+                    with open(filename, 'w', encoding='UTF-8') as f: f.write(text)
             except:
                 pass
+    if error_list:
+        print ('Some server errors occured while downloading. Please, try again later. Missing files are:\n')
+        for i in error_list:
+            print (i)
 
-def list_files(path='./dictionaries/', dialects = False):
+def list_files(path='./dictionaries/', dialects = False, output='filelist.txt'):
     """
     Creates file list that contains all file names of dictionaries
     that need to be considered for preprocessing (some can be excluded
@@ -298,9 +310,10 @@ def list_files(path='./dictionaries/', dialects = False):
     :param path (str): directory in which we search for bilingual
     dictionaries (default - 'dictinaries' folder that is used for downloading)
     :param dialects (boolean): whether split files by dialect or not
+    :param output (str): pathh to save results
     """
     from tool.data import remove
-    with open ('filelist.txt','w', encoding='utf-8') as f:
+    with open (output,'w', encoding='utf-8') as f:
         for root, dirs, files in os.walk (path):
             for file in files:
                 if re.match('apertium-.*?\.[a-z]{2,3}(_[a-zA-Z]{2,3})?-[a-z]{2,3}(_[a-zA-Z]{2,3})?.dix$', file):
@@ -308,14 +321,14 @@ def list_files(path='./dictionaries/', dialects = False):
                     if name not in remove:
                         f.write(os.path.abspath(os.path.join(root, file)).replace("\\","/")+'\n')
     if dialects:
-        split_dialects()
+        split_dialects(output)
 
-def split_dialects():
+def split_dialects(input):
     """
     Checks all files in folder or path (if path) and splits them on
     different dictionaries for each dialect combination (e.g. nor-nno-nob)
     """
-    with open('filelist.txt','r') as f:
+    with open(input,'r') as f:
         file_list = f.readlines()
     file_list = [i.strip() for i in file_list]
     file_list2 = []
@@ -358,25 +371,25 @@ def split_dialects():
             else:
                 file_list2.append(file)
         except: pass 
-        with open('filelist.txt','w', encoding='utf-8') as f:
+        with open(input,'w', encoding='utf-8') as f:
             f.write('\n'.join(file_list2))
 
 # PREPROCESSING AND BUILDING
 
-def all_languages():
+def all_languages(input):
     """
     Set of all languages in bilingual dictionaries. This set is used
     for monolingual dictionaries.
     """
     s = set()
     with open ('./tool/langs.py','w',encoding='utf-8') as outp:
-        with open ('filelist.txt','r',encoding='utf-8') as inp:
+        with open (input,'r',encoding='utf-8') as inp:
             for line in inp:
                 name = [l(i) for i in line.split('.')[-2].split('-')]
                 s.update(name)
         outp.write('langs='+str(s))
 
-def one_language_dict(lang):
+def one_language_dict(lang, input):
     """
     It gathers all words in all bilingual dictionaries that contain
     this particular language.
@@ -388,7 +401,7 @@ def one_language_dict(lang):
     """
     dictionary = FilteredDict()
     dictionary.set_lang(lang)
-    with open ('./filelist.txt','r', encoding='utf-8') as f:
+    with open (input,'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip('\n')
             pair = [l(i) for i in line.split('.')[-2].split('-')]
@@ -499,7 +512,7 @@ def dictionary_to_nodes(dictionary):
         for tag in tags:
             yield Word(word, dictionary.lang, Tags([i for i in tag if i != '']))
 
-def monodix():
+def monodix(input):
     """
     Creates artificially created monolingual dictionaries with words
     that have all tag variants and ready to be used in bilingual
@@ -513,7 +526,7 @@ def monodix():
         os.makedirs('./monodix/')
     for lang in tqdm(langs):
     #for lang in langs:
-        dictionary = one_language_dict(lang)
+        dictionary = one_language_dict(lang, input)
         with open ('./monodix/'+lang+'.dix', 'w', encoding = 'utf-16') as f:
             for i in dictionary_to_nodes(dictionary):
                 f.write (i.write(mode='mono')+'\n')
@@ -585,7 +598,7 @@ def existance(pair, nodes):
     if pair[0] in nodes and pair[1] in nodes: return True
     else: return False
 
-def bidix():
+def bidix(input):
     """
     Parsing bilingual dictionaries from file list. Creates all
     preprocessed copies of these dictionaries.
@@ -600,7 +613,7 @@ def bidix():
     logging.info('Started bilingual dictionaries')
     if not os.path.exists('./parsed/'): os.makedirs('./parsed/')
     with open ('./tool/stats.csv','w',encoding='utf-8') as stats:
-        with open('./filelist.txt', 'r', encoding = 'utf-8') as f:
+        with open(input, 'r', encoding = 'utf-8') as f:
             lines = f.readlines()
         for line in tqdm(lines):
             file = line.strip('\n')
@@ -634,12 +647,15 @@ def bidix():
     print ()
     logging.info('Finished bilingual dictionaries')
 
-def recommend(lang1, lang2):
+def recommend(lang1, lang2, input):
     """
+    This function makes preliminary recommendations about what 
+    bilingual dictionaries may be helpful for bilingual dictionary
+    enrichment for a particular language pair.
     """
     
     G = nx.Graph()
-    with open ('./filelist.txt','r', encoding='utf-8') as f:
+    with open (input,'r', encoding='utf-8') as f:
         for line in tqdm(f.readlines()):
             line = line.strip('\n')
             pair = [l(i) for i in line.split('.')[-2].split('-')] 
@@ -662,15 +678,15 @@ def recommend(lang1, lang2):
         for i in sorted(result, key=result.get):
             f.write(i+'\n')
 
-def preprocessing():
+def preprocessing(input='filelist.txt'):
     """
     Combination of previous functions: all_languages, monodix and bidix
     """
-    all_languages()
+    all_languages(input)
     global langs
     from .langs import langs
-    monodix()
-    bidix()
+    monodix(input)
+    bidix(input)
 
 def import_mono(lang):
     """
@@ -1042,7 +1058,7 @@ def two_node_search (G, node1, node2, lang1, lang2, cutoff=4, topn=None):
         else: coefficient += 0.01
     return coefficient
 
-def _one_iter(lang1, lang2, G, l1, cutoff=4, topn=None):
+def _one_iter(lang1, lang2, G, l1, cutoff=4, topn=None, ncheck=1000):
     """
     One iteration of evaluation.
     
@@ -1069,16 +1085,16 @@ def _one_iter(lang1, lang2, G, l1, cutoff=4, topn=None):
     candidates = random.sample(l1, len(l1))
     pairs = []
     for i in candidates:
-        if len(pairs) < 1000 and i in G.nodes():
+        if len(pairs) < ncheck and i in G.nodes():
             ne = list(G.neighbors(i))
             s = FilteredList(ne).lang(lang2)
             if len(s) == 1 and len(ne) > 1:
                 ne = list(G.neighbors(s[0]))
                 if len(FilteredList(ne).lang(lang1)) == 1 and len(ne)>1 and FilteredList(ne).lang(lang1)[0]==i:
                     pairs.append((i, s[0]))
-        elif len(pairs) >= 1000: break
+        elif len(pairs) >= ncheck: break
     if len(pairs) == 0: print ('no one-variant')
-    pairs2 = pairs[:1000]
+    pairs2 = pairs[:ncheck]
     result = []
     for i in tqdm(pairs): 
         result.append(two_node_search (G, i[0], i[1], lang1, lang2, cutoff=cutoff, topn=topn))
@@ -1092,7 +1108,7 @@ def _one_iter(lang1, lang2, G, l1, cutoff=4, topn=None):
         print ('error')
     del G, pairs
 
-def eval_loop(lang1, lang2, n=10, topn=None, n_iter=3, cutoff=4):
+def eval_loop(lang1, lang2, n=10, topn=None, n_iter=3, cutoff=4, ncheck=1000):
     """
     Calculates precision, recall and f1 for language pair.
     
@@ -1102,6 +1118,7 @@ def eval_loop(lang1, lang2, n=10, topn=None, n_iter=3, cutoff=4):
     (None for 'auto' mode, int for certain number)
     :param n_iter (int): how many iterations of evaluation
     :param cutoff (int): cutoff
+    :param ncheck (int): how many translations we check
     """
     logging.info('Start ~ 20 s')
     n, cutoff, n_iter = int(n), int(cutoff), int(n_iter)
@@ -1116,7 +1133,7 @@ def eval_loop(lang1, lang2, n=10, topn=None, n_iter=3, cutoff=4):
     for i in range(n_iter):
         logging.info('Initialization '+str(i+1)+' ~ 1 min')
         G = built_from_file('{}-{}'.format(lang1,lang2))
-        _one_iter(lang1, lang2, G, l1, cutoff=cutoff, topn=topn)
+        _one_iter(lang1, lang2, G, l1, cutoff=cutoff, topn=topn, ncheck=ncheck)
 
 #def change_encoding(file):
 #    "Change utf-16 that works with accents inside program to utf-8 to reduce file size (doesn't cause problems in this case)"
@@ -1297,10 +1314,21 @@ def print_lemma_results(results, file):
 
 def example (lang1, lang2, n=10, cutoff=4, topn=None, input='', lang = '', config=False, load=False, output=''):
     """
+    Allows to see in human-readable way how this tool works with
+    coefficients and possible translations.
     
-    
+    :param lang1, lang2 (str): languages
+    :param n (int): number of top languages
+    :param cutoff (int): cutoff
+    :param topn (int): top-n candidates to print
+    :param lang (str): source language
+    :param load (bool): create loading file
+    :param config (bool): create config file
+    :param input (str): input file name
+    :param output (str): outpur file name, by default - stdout
     """
     logging.info('Initialization ~1 min')
+    if not input: print('Please, specify input file!')
     if output: file = open(output, 'w', encoding='utf-8')
     else: output = sys.stdout
     with open (input, 'r', encoding='utf-8') as f:
@@ -1326,6 +1354,9 @@ def example (lang1, lang2, n=10, cutoff=4, topn=None, input='', lang = '', confi
             print('---------------------------------------------', file=file)
 
 def _sub_addition(lang1, lang2, l1, G, cutoff):
+    """
+    Addition function variant for grid (see addition)
+    """
     k1 = [0,0,0,0]  #existant, failed, new, errors
     for node in l1:
         if node in G:
@@ -1340,7 +1371,10 @@ def _sub_addition(lang1, lang2, l1, G, cutoff):
     else: c = 0
     print ('{}->{}    Exist: {}, failed: {}, NEW: {} +{}%, NA: {}'.format(lang1, lang2, k1[0], k1[1], k1[2], round(c, 0), k1[3]))
 
-def _one_iter_grid(lang1, lang2, n, cutoff, topns):
+def _one_iter_grid(lang1, lang2, n, cutoff, topns, ncheck):
+    """
+    One iter of grid search.
+    """
     print('n: {}\tcutoff: {}'.format(n, cutoff))
     get_relevant_languages(lang1, lang2)
     load_file(lang1, lang2, n=n)
@@ -1352,16 +1386,16 @@ def _one_iter_grid(lang1, lang2, n, cutoff, topns):
         candidates = random.sample(l1, len(l1))
         pairs = []
         for i in candidates:
-            if len(pairs) < 1000 and i in G.nodes():
+            if len(pairs) < ncheck and i in G.nodes():
                 ne = list(G.neighbors(i))
                 s = FilteredList(ne).lang(lang2)
                 if len(s) == 1 and len(ne) > 1:
                     ne = list(G.neighbors(s[0]))
                     if len(FilteredList(ne).lang(lang1)) == 1 and len(ne)>1 and FilteredList(ne).lang(lang1)[0]==i:
                         pairs.append((i, s[0]))
-            elif len(pairs) >= 1000: break
+            elif len(pairs) >= ncheck: break
         if len(pairs) == 0: print ('no one-variant')
-        pairs2 = pairs[:1000]
+        pairs2 = pairs[:ncheck]
         result = []
         for i in pairs: 
             result.append(two_node_search (G, i[0], i[1], lang1, lang2, cutoff=cutoff, topn=topn))
@@ -1375,10 +1409,19 @@ def _one_iter_grid(lang1, lang2, n, cutoff, topns):
             print ('error')
     del G, pairs
     
-def grid(lang1, lang2, n, cutoff, topn):
+def grid(lang1, lang2, n, cutoff, topn, ncheck=1000):
+    """
+    This function allows to run a parameter search (grid search) to find best parameters for a translation.
+    
+    :param lang1, lang2 (str): languages
+    :param n (int): number of top languages
+    :param cutoff (int): cutoff
+    :param topn (int): top-n candidates to print
+    :param ncheck (int): how many translations to check
+    """
     if None not in topn: topn.append(None)
     for i in n:
         for j in cutoff:
-            _one_iter_grid(lang1, lang2, n=i, cutoff=j, topns=topn)
+            _one_iter_grid(lang1, lang2, n=i, cutoff=j, topns=topn, ncheck=ncheck)
             print('===============================================================')
     

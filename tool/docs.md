@@ -122,33 +122,9 @@ Language code converter
 
 This function takes dictionary from data file where there are 2-letter code and converts it into 3-letter code. Also there are some dialect forms for convertation.
 
-**repo_names**
+**update**
 
-```
-repo_names(user)
-
-user: user object from Github library
-
-Yield : repository names
-```
-Takes repositories from Apertium Github that match language pair name pattern.
-
-```
-'apertium-[a-z]{2,3}(_[a-zA-Z]{2,3})?-[a-z]{2,3}(_[a-zA-Z]{2,3})?'
-```
-
-**bidix_url**
-
-```
-bidix_url(repo)
-
-repo : repository object from Github library
-
-Return : bidix raw url
-```
-Finds raw url for bidix. Sorting in order to find bidix faster as it is one of the longest filename in repository.
-
-In list of files sorted by length it checks whether filename matches bilingual dictionary name pattern until one is found or there are no more elements in file list.
+Function asks for Github username and password to be able to work with Github API to update downloading list. It goes through repositories and searches for bilingual dictionary files.
 
 **download**
 
@@ -322,6 +298,9 @@ Parsing bilingual dictionaries from file list. Creates all preprocessed copies o
 3. Converts original dictionary into parsed copy.
 4. Counts both, RL and LR words.
 
+**recommend**
+
+This function makes preliminary recommendations about what bilingual dictionaries may be helpful for bilingual dictionary enrichment for a particular language pair. It uses the same principle as in config funtion, using coef = 1/log10(DictLength), where DictLength is number of lines in file. Then it finds best paths (top-300) and writes names of files that appear in these paths (in order of appearance, from shortest paths to longer ones). This may shorten preprocessing if there are only a few relevant bilingual dictionares.
 
 **preprocessing**
 

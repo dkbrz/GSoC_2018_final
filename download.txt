@@ -5,6 +5,7 @@ https://raw.githubusercontent.com/apertium/apertium-as-hi/master/apertium-as-hi.
 https://raw.githubusercontent.com/apertium/apertium-asm-ben/master/apertium-asm-ben.asm-ben.dix
 https://raw.githubusercontent.com/apertium/apertium-asm-eng/master/apertium-asm-eng.asm-eng.dix
 https://raw.githubusercontent.com/apertium/apertium-ava-rus/master/apertium-ava-rus.ava-rus.dix
+https://raw.githubusercontent.com/apertium/apertium-bas-btc/master/apertium-bas-btc.bas-btc.dix
 https://raw.githubusercontent.com/apertium/apertium-bel-rus/master/apertium-bel-rus.bel-rus.dix
 https://raw.githubusercontent.com/apertium/apertium-bg-el/master/apertium-bg-el.bg-el.dix
 https://raw.githubusercontent.com/apertium/apertium-bg-en/master/apertium-bg-en.bg-en.dix

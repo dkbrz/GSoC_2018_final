@@ -28,6 +28,7 @@ parser_list.set_defaults(func=list_files)
 parser_recommend = subparsers.add_parser('recommend')
 parser_recommend.add_argument('lang1', type=str, action='store')
 parser_recommend.add_argument('lang2', type=str, action='store')
+parser_recommend.add_argument('--input', type=str, action='store', nargs='?', default='filelist.txt')
 parser_recommend.set_defaults(func=recommend)
 
 #preprocessing (mono + bi dictionaries)
